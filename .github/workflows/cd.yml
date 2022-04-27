@@ -1,0 +1,61 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: FLOCKs App CD
+
+on:
+  repository_dispatch:
+    types: [update-packages] # with client_payload.packages
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    env:
+      VUE_APP_API_URL: "https://rights.flocks.jp"
+      VUE_APP_APP_SCHEME: "flocks"
+      VUE_APP_SLACK_FEEDBACK_CHANNEL_NAME: "#rights-flocks-c"
+      VUE_APP_SLACK_FEEDBACK_CHANNEL_URL: "https://rights.slack.com/archives/C016D8QM6JZ"
+      VUE_APP_SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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"
+      BUNDLE_ID: "jp.rights-s.flocks.app"
+      MAC_BUILD_APPLEID: ${{ secrets.MAC_BUILD_APPLEID }}
+      MAC_BUILD_APPLEIDPASS: ${{ secrets.MAC_BUILD_APPLEIDPASS }}
+      MAC_BUILD_ASC_PROVIDER: "RightsCoLtd"
+      MAC_BUILD_CSC_NAME: "Rights Co.,Ltd. (Q8UKHAE2R2)"
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    strategy:
+      matrix:
+        node-version: [14.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'yarn'
+
+          # - uses: apple-actions/import-codesign-certs@v1
+          #   with:
+          #     p12-file-base64: ${{ secrets.APPLE_DEVELOPER_CERTIFICATES_P12 }}
+          #     p12-password: ${{ secrets.APPLE_DEVELOPER_CERTIFICATES_P12_PASSWORD }}
+
+          # - name: run yarn install
+          #   run: yarn install --check-files
+
+          # - name: build electron for mac
+          #   run: yarn run electron:build:mac -p always
+
+          # - name: build electron for win
+          #   run: yarn run electron:build:win
+
+          # - name: dispatch update-packages
+          #   uses: peter-evans/repository-dispatch@v1
+          #   with:
+          #     repository: rights-s/flocks-app-release
+          #     token: ${{ secrets.GITHUB_PERSONAL_TOKEN }}
+          #     event-type: update-pkgs
