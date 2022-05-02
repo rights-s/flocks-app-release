@@ -1,0 +1,57 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: FLOCKs App CD
+
+on:
+  repository_dispatch:
+    types: [update-packages] # with client_payload.packages
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    env:
+      VUE_APP_API_URL: ${{ secrets.VUE_APP_API_URL }}
+      VUE_APP_APP_SCHEME: ${{ secrets.VUE_APP_APP_SCHEME }}
+      VUE_APP_SLACK_FEEDBACK_CHANNEL_NAME: ${{ secrets.VUE_APP_SLACK_FEEDBACK_CHANNEL_NAME }}
+      VUE_APP_SLACK_FEEDBACK_CHANNEL_URL: ${{ secrets.VUE_APP_SLACK_FEEDBACK_CHANNEL_URL }}
+      VUE_APP_SLACK_WEBHOOK_URL: ${{ secrets.VUE_APP_SLACK_WEBHOOK_URL }}
+      BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
+      MAC_BUILD_APPLEID: ${{ secrets.MAC_BUILD_APPLEID }}
+      MAC_BUILD_APPLEIDPASS: ${{ secrets.MAC_BUILD_APPLEIDPASS }}
+      MAC_BUILD_ASC_PROVIDER: ${{ secrets.MAC_BUILD_ASC_PROVIDER }}
+      MAC_BUILD_CSC_NAME: ${{ secrets.MAC_BUILD_CSC_NAME }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+    - name: Generate github token
+      id: generate_token
+      uses: tibdex/github-app-token@v1
+      with:
+        app_id: ${{ secrets.FLOCKS_REPOS_ACCESSOR_APP_ID }}
+        private_key: ${{ secrets.FLOCKS_REPOS_ACCESSOR_PRIVATE_KEY }}
+
+    - uses: actions/checkout@v3
+      with:
+        repository: 'rights-s/flocks-app'
+        ref: 'master'
+        token: ${{ steps.generate_token.outputs.token }}
+
+    - name: setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version-file: '.node-version'
+        cache: 'yarn'
+
+    - uses: apple-actions/import-codesign-certs@v1
+      with:
+        p12-file-base64: ${{ secrets.APPLE_DEVELOPER_CERTIFICATES_P12 }}
+        p12-password: ${{ secrets.APPLE_DEVELOPER_CERTIFICATES_P12_PASSWORD }}
+
+    - name: run yarn install
+      run: yarn install --check-files
+
+    - name: build electron for mac and win
+      run: yarn run electron:build:all -p always
